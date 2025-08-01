@@ -5,9 +5,221 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inventario de Autopartes - Almacén KY</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGXWmM74hRpPOryfOnnzk18c2lShG2CYg",
+  authDomain: "inventarioautopartes.firebaseapp.com",
+  databaseURL: "https://inventarioautopartes-default-rtdb.firebaseio.com",
+  projectId: "inventarioautopartes",
+  storageBucket: "inventarioautopartes.firebasestorage.app",
+  messagingSenderId: "587249751396",
+  appId: "1:587249751396:web:5734fe87ee401836f9d671",
+  measurementId: "G-0M2GHQVVDY"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const storage = getStorage(app);
+
+    const tabla = document.getElementById("tabla-inventario");
+
+    function cargarInventario() {
+      const inventarioRef = ref(database, "inventario");
+      onValue(inventarioRef, (snapshot) => {
+        tabla.innerHTML = "";
+        snapshot.forEach((child) => {
+          const data = child.val();
+          const fila = document.createElement("tr");
+
+          const mensaje = `Hola, estoy interesado en la parte ${data.nombre}, ID: ${data.id}, ¿está disponible?`;
+          const whatsappLink = `https://wa.me/5048935297?text=${encodeURIComponent(mensaje)}`;
+
+          fila.innerHTML = `
+            <td>${data.id}</td>
+            <td>${data.nombre}</td>
+            <td>${data.condicion}</td>
+            <td>${data.precio}</td>
+            <td>${data.stock}</td>
+            <td>${data.ubicacion}</td>
+            <td><img src="${data.imagenURL || ''}" style="max-width: 80px; height: auto; border-radius: 6px;" /></td>
+            <td><a href="${whatsappLink}" target="_blank" class="btn btn-whatsapp">Cotizar</a></td>
+          `;
+
+          tabla.appendChild(fila);
+        });
+      });
+    }
+
+    cargarInventario();
+
+    document.getElementById("formulario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById("id").value;
+      const nombre = document.getElementById("nombre").value;
+      const condicion = document.getElementById("condicion").value;
+      const precio = document.getElementById("precio").value;
+      const stock = document.getElementById("stock").value;
+      const ubicacion = document.getElementById("ubicacion").value;
+      const archivo = document.getElementById("imagen").files[0];
+
+      let imagenURL = "";
+      if (archivo) {
+        const ruta = `imagenes/${id}_${archivo.name}`;
+        const storageRef = sRef(storage, ruta);
+        await uploadBytes(storageRef, archivo);
+        imagenURL = await getDownloadURL(storageRef);
+      }
+
+      const data = { id, nombre, condicion, precio, stock, ubicacion, imagenURL };
+      set(ref(database, "inventario/" + id), data)
+        .then(() => alert("Parte guardada con imagen."))
+        .catch((error) => alert("Error: " + error));
+    });
+  </script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f8;
+      color: #333;
+    }
+    header {
+      background: linear-gradient(135deg, #111, #333);
+      color: #fff;
+      padding: 2rem 1rem;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    header p {
+      margin: 0.5rem 0 0;
+      font-size: 1rem;
+      color: #ccc;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .search-input {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #222;
+      color: #fff;
+      font-weight: 600;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .btn {
+      background: #28a745;
+      color: white;
+      padding: 0.4rem 0.8rem;
+      text-decoration: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border: none;
+      transition: 0.3s ease;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn:hover {
+      opacity: 0.85;
+    }
+    .btn-danger { background: #dc3545; }
+    .btn-whatsapp { background: #25d366; }
+    form {
+      margin-top: 2rem;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    form input {
+      padding: 0.6rem;
+      margin-bottom: 1rem;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    form label {
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <!-- El contenido real fue insertado desde el canvas y no se guarda en variables persistentes tras reinicio -->
-  <h1>Archivo reconstruido. Usa la función "Exportar" del canvas para obtener la última versión.</h1>
+  <header>
+    <h1>Inventario de Autopartes</h1>
+    <p>Almacén KY - Motores, Transmisiones y Más</p>
+  </header>
+  <div class="container">
+    <input id="buscar" class="search-input" type="text" placeholder="Buscar por ID, nombre o ubicación...">
+    <table>
+      <thead>
+        <tr>
+          <th>ID Parte</th>
+          <th>Nombre</th>
+          <th>Condición</th>
+          <th>Precio (USD)</th>
+          <th>Stock</th>
+          <th>Ubicación</th>
+          <th>Imagen</th>
+          <th>Cotizar</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-inventario"></tbody>
+    </table>
+
+    <form id="formulario">
+      <h3>Agregar / Editar Parte</h3>
+      <label for="id">ID Parte</label>
+      <input type="text" id="id" required>
+      <label for="nombre">Nombre</label>
+      <input type="text" id="nombre" required>
+      <label for="condicion">Condición</label>
+      <input type="text" id="condicion" required>
+      <label for="precio">Precio (USD)</label>
+      <input type="number" id="precio" required>
+      <label for="stock">Stock</label>
+      <input type="number" id="stock" required>
+      <label for="ubicacion">Ubicación</label>
+      <input type="text" id="ubicacion" required>
+      <label for="imagen">Imagen de la parte</label>
+      <input type="file" id="imagen" accept="image/*">
+      <button class="btn" type="submit">Guardar</button>
+    </form>
+  </div>
 </body>
 </html>
